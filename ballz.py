@@ -14,6 +14,10 @@ import sys
 
 pygame.init() # Used for debugging physics
 
+# Constants
+RENDER_SCALE = 2
+BALL_VEL_PER_FRAME = 4
+
 class Android(object): # Interface for using adb
 
     def __init__(self):
@@ -34,9 +38,7 @@ class Android(object): # Interface for using adb
         self._call("shell input swipe {} {} {} {} {}".format(int(x1), int(y1), int(x2), int(y2), ms))
 
     def swipe_angle(self, x, y, angle, dist=80): # Swipe to shot ball at angle from x,y coord
-        angle = angle - 90
-        angle *= .993
-        angle += 90
+        angle = ((angle - 90) * .986) + 90 # Minor adjustment for inconsistancies
         rad = math.radians(180+angle)
         dx = math.cos(rad) * dist
         dy = math.sin(rad) * dist
@@ -130,6 +132,13 @@ class Analyzer(object): # Screenshot -> Current Game State
         return grid
 
     def get_state(self): # The current game state from the screenshot
+
+        if self.image.getpixel((300,900)) == (234,34,94) and self.image.getpixel((300,1100)) == (0,163,150):
+            return None, None, None, 'gameover'
+        elif self.image.getpixel((980,235)) == (130,130,130):
+            return None, None, None, 'ingame'
+
+        state = 'ready'
         
         board = self.image.crop((0, self.TOP_Y, self.image.size[0], self.BOT_Y))
 
@@ -142,7 +151,7 @@ class Analyzer(object): # Screenshot -> Current Game State
 
         blocks.save('blocks.png') # Saves for debug
 
-        return ball_pos, grid, nballs
+        return ball_pos, grid, nballs, state
 
 class Simulator(object): # Uses game state to simulate plays @ diff angles
 
@@ -167,7 +176,7 @@ class Simulator(object): # Uses game state to simulate plays @ diff angles
             if not color:
                 x = self.value * 10 % 255
                 color = (100, x, x)
-            pygame.draw.rect(surface, color, (int(self.x/2), int(self.y/2), self.w/2, self.h/2), 0)
+            pygame.draw.rect(surface, color, (int(self.x/RENDER_SCALE), int(self.y/RENDER_SCALE), self.w/RENDER_SCALE, self.h/RENDER_SCALE), 0)
 
     class Ring(object): # Extra Ball Ring
 
@@ -179,11 +188,11 @@ class Simulator(object): # Uses game state to simulate plays @ diff angles
             self.r = r
 
         def draw(self, surface, color=(250,200,250)):
-            pygame.draw.circle(surface, color, (int(self.x/2), int(self.y/2)), self.r/2, 0)
+            pygame.draw.circle(surface, color, (int(self.x/RENDER_SCALE), int(self.y/RENDER_SCALE)), self.r/RENDER_SCALE, 0)
 
     class Ball(object): # The Ball
 
-        def __init__(self, x, y, angle, vel=8, r=21, delay=0):
+        def __init__(self, x, y, angle, vel=BALL_VEL_PER_FRAME, r=21, delay=0):
             self.x = x
             self.y = y
             self.vel = vel # Speed of the ball per sim update
@@ -210,15 +219,15 @@ class Simulator(object): # Uses game state to simulate plays @ diff angles
 
                     if alter: # Whether results of collision should effect velocities
 
-                        if abs(dx - dy) < 1.5: # Corner Collision
-                            self.vx = self.vy
-                            self.vy = -self.vx
-                        elif abs(dx) > abs(dy): # Top/Bottom Collision
+                        if abs(dx) > abs(dy): # Top/Bottom Collision
                             self.vx *= -1
-                            self.y += dy
+                            self.x -= abs(dx)/dx
+                            
                         else: # Left/Right Collision
                             self.vy *= -1
-                            self.x -= dx
+                            self.y += abs(dy)/dy
+                        
+                        
                     
                     return True
 
@@ -229,9 +238,7 @@ class Simulator(object): # Uses game state to simulate plays @ diff angles
 
             rect = pygame.Rect((block.x,block.y,block.w,block.h)) # Creates a rect object for easier checking
 
-            if self._collide(rect, xrange(0, 360, 15), self.r + 5): # Quick test before further checking (a basic optimization)
-
-                return self._collide(rect, xrange(0, 360, 6), self.r, alter=True) # More precise collision detection
+            return self._collide(rect, xrange(0, 360, 3), self.r, alter=True) # collision detection
 
         def collides_ring(self, ring): # Ball collides w/Ring
 
@@ -276,7 +283,7 @@ class Simulator(object): # Uses game state to simulate plays @ diff angles
                     self.vel = 0
 
         def draw(self, surface):
-            pygame.draw.circle(surface, (255,255,255), (int(self.x/2), int(self.y/2)), self.r/2, 0)
+            pygame.draw.circle(surface, (255,255,255), (int(self.x/RENDER_SCALE), int(self.y/RENDER_SCALE)), self.r/RENDER_SCALE, 0)
 
     ##########################
 
@@ -284,7 +291,7 @@ class Simulator(object): # Uses game state to simulate plays @ diff angles
 
         score = 0
         
-        coeffs = [1,1,2,3,10,40,160] # Heuristic based on blocks remaining and how low (in height) they are
+        coeffs = [1,1,1,1,3,10,500] # Heuristic based on blocks remaining and how low (in height) they are
         for k in xrange(7):
             for j in xrange(7):
                 if board[k][j] > 0:
@@ -306,7 +313,10 @@ class Simulator(object): # Uses game state to simulate plays @ diff angles
     def simulate(self, deg, nballs=1, render=False): # Run a simulation at specific angle
 
         if render: # Render = Running in Debug Mode
-            screen = pygame.display.set_mode((1080/2, 1920/2))
+            screen = pygame.display.set_mode((int(1080/RENDER_SCALE), int(1920/RENDER_SCALE)))
+            pygame.display.set_caption("angle = {}, nballs = {}".format(deg, nballs))
+
+            frame_delay = 0.05
 
         angle = math.radians(deg)
         
@@ -325,7 +335,7 @@ class Simulator(object): # Uses game state to simulate plays @ diff angles
                     
 
         for i in xrange(nballs):
-            balls.append(self.Ball(self.ball_pos[0], self.ball_pos[1], angle, delay=i*25))
+            balls.append(self.Ball(self.ball_pos[0], self.ball_pos[1], angle, delay=i*(200/BALL_VEL_PER_FRAME)))
         ##
             
         loops = 0 # The number of updates in the physics sim until round is over
@@ -335,27 +345,34 @@ class Simulator(object): # Uses game state to simulate plays @ diff angles
 
         while True:
 
-            if render: # If debugging,
+            if render: # If debugging...
                 
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         pygame.quit()
                         sys.exit()
+                    elif event.type == pygame.KEYDOWN:
+                        if event.key == 273: # UP
+                            frame_delay /= 2
+                        elif event.key == 274: # DOWN
+                            frame_delay *= 2
 
                 pygame.display.flip()
                 pygame.display.update()
 
-                time.sleep(0.05)
+                time.sleep(frame_delay)
 
                 screen.fill((64,64,64))
-                pygame.draw.rect(screen, (38,38,38), (0, 0, 1080/2, 160/2), 0)
-                pygame.draw.rect(screen, (38,38,38), (0, 1586/2, 1080/2, 334/2), 0)
+                pygame.draw.rect(screen, (38,38,38), (0, 0, int(1080/RENDER_SCALE), int(160/RENDER_SCALE)), 0)
+                pygame.draw.rect(screen, (38,38,38), (0, int(1586/RENDER_SCALE), int(1080/RENDER_SCALE), int(334/RENDER_SCALE)), 0)
 
                 for block in blocks:
-                    block.draw(screen)
+                    if block not in collided:
+                        block.draw(screen)
 
                 for ring in rings:
-                    ring.draw(screen)
+                    if ring not in collided:
+                        ring.draw(screen)
 
             done = True
 
@@ -384,7 +401,6 @@ class Simulator(object): # Uses game state to simulate plays @ diff angles
                         
                         if block.value == 0: # If value falls below 0 then it was destroyed
                             
-                            blocks.remove(block)
                             collided.append(block)
 
                             if render:
@@ -400,8 +416,6 @@ class Simulator(object): # Uses game state to simulate plays @ diff angles
                     elif ball.collides_ring(ring):
                         
                         collided.append(ring)
-
-                        rings.remove(ring)
 
                         board[ring.row][ring.col] = 0
 
@@ -424,7 +438,7 @@ def print_grid(grid):
     pprint.pprint(grid)
 
 
-def main(maxballs=40, angles=None, manual=False):
+def main(maxballs=55, angles=None, manual=False):
     
     device = Android()
 
@@ -441,8 +455,17 @@ def main(maxballs=40, angles=None, manual=False):
         print("Done")
 
         print("Retrieving Game State...", end='')
-        ball, grid, nballs = an.get_state()
+        ball, grid, nballs, state = an.get_state()
         print("Done")
+
+        if state is 'gameover':
+            print("\n\nGAME OVER")
+            break
+
+        elif state is 'ingame':
+            device.tap(980,235)
+            time.sleep(5)
+            continue
 
         print_grid(grid)
 
@@ -463,13 +486,14 @@ def main(maxballs=40, angles=None, manual=False):
                     best_loop = loops
             except Exception as e:
                 print(e)
+        
 
         print("\nBest: degrees={}, score={}, pseudo-runtime={}, balls={}\n".format(best_angle, best_score, best_loop, sim_nballs))
 
         device.swipe_angle(ball[0], ball[1], best_angle) # Execute best move
 
         if not manual: # Estimate how long the round will last and wait
-            seconds = int(best_loop / 120.0 + 8)
+            seconds = int(best_loop / 170.0 + 8)
             print("Waiting {} seconds... (Tap Ctrl-C to skip)\n".format(seconds))
             try:
                 while seconds > 0:
@@ -478,11 +502,11 @@ def main(maxballs=40, angles=None, manual=False):
             except KeyboardInterrupt: # Allow users to skip in the event estimated time is too long
                 time.sleep(0.7)
 
-def show_last(angle=45): # For debugging, replays last grid layout from screen.png
-    an = Analyzer(Image.open('screen.png'))
-    ball, grid, nballs = an.get_state()
-    s = Simulator(grid, ball)
-    s.simulate(angle, nballs, render=True)
+def show(angle=45, image='screen.png'): # For debugging, replays grid layout from image
+    an = Analyzer(Image.open(image))
+    ball, grid, nballs, state = an.get_state()
+    sim = Simulator(grid, ball)
+    sim.simulate(angle, nballs, render=True)
         
 if __name__ == "__main__":
     main()
