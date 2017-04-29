@@ -19,7 +19,7 @@ A python based bot for the mobile game [Ballz](https://play.google.com/store/app
 The task of playing the game is split into 3 different steps and in game
 interaction is carried out using command line adb tools.
 ##### 1. Get the Current Game State
-The program uses adb to take a screenshot of the device's screen. The image is then processed by [PIL](http://www.pythonware.com/products/pil/) to extract import features. Using [Pytesser](https://pypi.python.org/pypi/PyTesser), the program is able to read the numbers on blocks to create a 2D array that represents the board as well as read the number of balls available.
+The program uses adb to take a screenshot of the device's screen. The image is then processed by [PIL](http://www.pythonware.com/products/pil/) to extract important features. Using [Pytesser](https://pypi.python.org/pypi/PyTesser), the program uses the processed screenshot to read the numbers on every block to create a 2D array that represents the board as well as read the number of balls available for the round.
 ##### 2. Simulate
 For every possible angle, a digital environment is constructed based on the captured game state. Using a lite physics engine the trajectories of the balls are calculated as well as the blocks they will collide with. After running each simulation until all balls have returned to the bottom of the screen, they each return the resultant board.
 ##### 3. Heuristic and Execution
