@@ -26,3 +26,7 @@ For every possible angle, a digital environment is constructed based on the capt
 Using the game state retrieved from every angle, the program uses a simple algorithm to determine the cost (in essence how bad the swipe was). It then chooses the angle from the simulation with the lowest cost and then calculated the physical swipe needed to perform it. Using the Android command line, the swipe is executed, and the program waits until it thinks that the round is over (roughly calculated using the number of frames in the physics engine and the actual frame rate of the device) before starting again.
 
 ![equation](http://www.sciweavers.org/upload/Tex2Img_1493423442/render.png)
+
+##### Screenshot
+
+![screenshot](https://cloud.githubusercontent.com/assets/6625384/25557899/f4b1f0fe-2ce0-11e7-9245-463100049ea3.gif)
