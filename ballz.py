@@ -442,7 +442,7 @@ def print_grid(grid):
     pprint.pprint(grid)
 
 
-def main(maxballs=55, angles=None, manual=False, render=False):
+def main(maxballs=65, angles=None, manual=False, render=False):
     
     device = Android()
 
