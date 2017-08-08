@@ -25,21 +25,21 @@ class Android(object):
         subprocess.call("adb " + cmd, shell=True)
 
     def screenshot(self, fn="/sdcard/screen.png", sn="screen.png"):
-	    """Takes a screenshot, saves to android, uploads to computer"""
+        """Takes a screenshot, saves to android, uploads to computer"""
         self._call("shell screencap " + fn)
         self._call("pull " + fn)
         return Image.open(sn)
 
     def tap(self, x, y):
-	    """Taps at (x,y)"""
+        """Taps at (x,y)"""
         self._call("shell input tap {} {}".format(x, y))
 
     def swipe(self, x1, y1, x2, y2, ms=500):
-	    """Swipes from (x,y) to (x2,y2)"""
+        """Swipes from (x,y) to (x2,y2)"""
         self._call("shell input swipe {} {} {} {} {}".format(x1, y1, x2, y2, ms))
 
     def swipe_angle(self, x, y, angle, dist=90, ms=600): # Swipe to shot ball at angle from x,y coord
-	    """Swipes on the device from (x,y) at projecting angle"""
+    """Swipes on the device from (x,y) at projecting angle"""
         rad = math.radians(180+angle)
         dx = math.cos(rad) * dist
         dy = math.sin(rad) * dist
@@ -61,8 +61,8 @@ def get_int(image):
 
 class Analyzer(object):
     """
-	Converts a screenshot into an object(s) representing the current game state
-	"""
+    Converts a screenshot into an object(s) representing the current game state
+    """
     BG_C = (32,32,32)
     TOP_Y = 160
     BOT_Y = 1585
@@ -82,74 +82,89 @@ class Analyzer(object):
     def __init__(self, image):
         self.image = image.convert('RGB')
 
-    def _get_ball_pos(self, screen): # x,y pos of ball
+    def _get_ball_pos(self, screen): # x, y pos of ball
+
         x = 0
         while screen.getpixel((x, 1560)) == self.BG_C:
             x += 1
+
         return [x + 21, 1560]
 
     def _get_num_balls(self, ballpos, screen): # number of balls
+
         x, y = ballpos
+
         try:
+
             im = screen.crop((max(x-80, 0),y-80,min(x+90, 1080),y-22))
             return get_int(im)
+
         except Exception as e:
+
             print(e)
             return 1
 
     def _get_block_type(self, block): # type/value of block or ring
+
         r, g, b = block.getpixel((40,40))
+
         if r != g != b and (r,g,b) not in self.NOTBLOCK_C:
+
             return get_int(block)
+
         elif block.getpixel((60,60)) == self.BALL_C:
+
             return -1
+
         elif block.getpixel((37,46)) == self.RING_C:
+
             return -2
+
         return 0
 
     def _get_blocks(self, blocks): # Matrix of all blocks w/values and rings
-        
+
         grid = [ [0 for c in range(7)] for r in range(7) ]
-        
+
         w, h = blocks.size
         dx = self.BLOCKS_SPACE_X
         dy = self.BLOCKS_SPACE_Y
 
         row = 0
         col = 0
-        
+
         for x in range(0, w, dx):
             for y in range(0, h, dy):
                 block = blocks.crop((x, y, x + self.BLOCK_W, y + self.BLOCK_W))
-                
+
                 grid[row][col] = self._get_block_type(block)
 
                 row += 1
-                
+
             col += 1
             row = 0
 
         return grid
 
     def get_state(self):
-	    """
-		Determines the current game state from image
-		
-		Returns a tuple(4) with ball (x,y), grid, num of balls, and the state as a str
-		"""
+        """
+        Determines the current game state from image
+
+        Returns a tuple(4) with ball (x,y), grid, num of balls, and the state as a str
+        """
         if self.image.getpixel((300,900)) == (234,34,94) and self.image.getpixel((300,1100)) == (0,163,150):
             return None, None, None, 'gameover'
         elif self.image.getpixel((980,235)) == (130,130,130):
             return None, None, None, 'ingame'
 
         state = 'ready'
-        
+
         board = self.image.crop((0, self.TOP_Y, self.image.size[0], self.BOT_Y))
 
         ball_pos = self._get_ball_pos(self.image)
 
         nballs = self._get_num_balls(ball_pos, self.image)
-        
+
         blocks = board.crop((self.BLOCKS_X, self.BLOCKS_Y, self.BLOCKS_X + self.BLOCKS_W, self.BLOCKS_Y + self.BLOCKS_H))
         grid = self._get_blocks(blocks)
 
@@ -205,7 +220,7 @@ class Simulator(object):
             self.delay = delay # How long until ball begins moving
 
             self.ig = False # Has the ball entered the playing space
-            
+
             self.vx = math.cos(angle) * self.vel
             self.vy = math.sin(angle) * self.vel
 
@@ -214,7 +229,7 @@ class Simulator(object):
             # Converts perimeter of circle into a list of discrete points and checks if any are in rect
 
             for dx, dy in [(0,radius), (0,-radius), (radius,0), (-radius,0)]: # First Check Common Angles
-                
+
                 if rect.collidepoint((self.x + dx, self.y - dy)):
 
                     if alter:  # Whether results of collision should effect velocities
@@ -246,11 +261,11 @@ class Simulator(object):
 
                         if abs(self.vy) < 0.01:
                             self.vy = 0.01
-                    
+
                     return True
 
             return False
-                    
+
 
         def collides_block(self, block): # Checks if ball collides with block
 
@@ -274,27 +289,35 @@ class Simulator(object):
         def update(self):
             """Updates the ball's position"""
             if self.delay > 0:
+
                 self.delay -= 1
 
             else:
-                
+
                 self.x += self.vx
                 self.y -= self.vy
 
                 if self.y < 1490: # Ball has offically left start
+
                     self.ig = True
 
                 if self.x < self.r:
+
                     self.x = self.r
                     self.vx *= -1
+
                 elif self.x > 1080 - self.r:
+
                     self.x = 1080 - self.r
                     self.vx *= -1
 
                 if self.y < self.r + 160:
+
                     self.y = self.r + 160
                     self.vy *= -1
+
                 elif self.y > 1510 and self.ig: # Ball has returned
+
                     self.y = 1510
                     self.vy = 0
                     self.vx = 0
@@ -308,7 +331,7 @@ class Simulator(object):
     def calculate_score(self, board):
         """Calculate score just based on remaining blocks"""
         score = 0
-        
+
         coeffs = [1,1.1,1.2,1.5,2,10,500] # Heuristic based on blocks remaining and how low (in height) they are
         for k in range(7):
             for j in range(7):
@@ -319,27 +342,27 @@ class Simulator(object):
 
     def simulate(self, deg, nballs=1, render=False):
         """
-		Simulates a game state at a specific angle
-		
-		Parameters
-		----------
-		deg : int
-		    Degree to launch the ball
-		nballs : int
-		    Number of balls to simulate
-		render : bool
-		    True will render the simulation with pygame
-		"""
+        Simulates a game state at a specific angle
+
+        Parameters
+        ----------
+        deg : int
+            Degree to launch the ball
+        nballs : int
+            Number of balls to simulate
+        render : bool
+            rue will render the simulation with pygame
+        """
         if render: # Render = Running in Debug Mode
             pygame.init()
-            
+
             screen = pygame.display.set_mode((int(1080 / RENDER_SCALE), int(1920 / RENDER_SCALE)))
             pygame.display.set_caption("angle = {}, nballs = {}".format(deg, nballs))
 
             frame_delay = 0.05
 
         angle = math.radians(deg)
-        
+
         board = [list(j) for j in self.grid] # Create a copy of grid
         blocks = []
         rings = []
@@ -352,23 +375,23 @@ class Simulator(object):
                     blocks.append(self.Block(r, c, board[r][c]))
                 elif board[r][c] == -1:
                     rings.append(self.Ring(r, c))
-                    
+
 
         for i in range(nballs):
             balls.append(self.Ball(self.ball_pos[0], self.ball_pos[1], angle, delay=i * (190 / BALL_VEL_PER_FRAME)))
         ##
-            
+
         loops = 0 # The number of updates in the physics sim until round is over
         score = 0 # Based on heuristics on how well the round went
 
         collided = []
-        
+
         quit_loop = False
 
         while True:
 
             if render: # If debugging...
-                
+
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         pygame.quit()
@@ -407,27 +430,27 @@ class Simulator(object):
                     done = False
                 else:
                     continue
-                
+
                 for block in blocks:
 
                     if block in collided or ball.dist_squared_block(block) > 13650: # If block was already collided with then it wont happend again OR too far for any possible collision
                         continue
-                    
+
                     elif ball.collides_block(block):
-                    
+
                         if render:
                             block.draw(screen, (100,100,200))
 
                         block.value -= 1
                         board[block.r][block.c] -= 1
-                        
+
                         if block.value == 0: # If value falls below 0 then it was destroyed
-                            
+
                             collided.append(block)
 
                             if render:
                                 block.draw(screen, (250,100,100))
-                                
+
                         break
 
                 for ring in rings:
@@ -436,13 +459,13 @@ class Simulator(object):
                         continue
 
                     elif ball.collides_ring(ring):
-                        
+
                         collided.append(ring)
 
                         board[ring.row][ring.col] = 0
 
                         score += 15 # Reward score for getting another ball
-                    
+
                 ball.update()
 
             if done and not render: # If all balls are done then sim is over
@@ -453,7 +476,7 @@ class Simulator(object):
         score += self.calculate_score(board)
 
         return score, loops, board
-                
+
 
 
 def print_grid(grid):
@@ -462,26 +485,26 @@ def print_grid(grid):
 
 def main(maxballs=65, angles=None, manual=False, render=False):
     """
-	Main method.
-	
-	Loops, each time taking a screenshot -> processing -> swiping
-	
-	Parameters
-	----------
-	maxballs : int
-	    Max number of balls to use when simulating (used to prevent slow simulations)
-	angles : generator(int)
-	    The angles to check each time
-	manual : bool
-	    True will force the program to wait for user input
-	render : bool
-	    True will make each loop render the best simulation calculated
-	"""
+    Main method.
+
+    Loops, each time taking a screenshot -> processing -> swiping
+
+    Parameters
+    ----------
+    maxballs : int
+        Max number of balls to use when simulating (used to prevent slow simulations)
+    angles : generator(int)
+        The angles to check each time
+    manual : bool
+        True will force the program to wait for user input
+    render : bool
+        True will make each loop render the best simulation calculated
+    """
     device = Android()
 
     if not angles:
         angles = range(14, 180-13, 2) # Choose all angles at 2 degs apart
-    
+
     while True:
 
         if manual: # Allows for manually controlling program
@@ -520,7 +543,7 @@ def main(maxballs=65, angles=None, manual=False, render=False):
                 best_score = score
                 best_angle = ang
                 best_loop = loops
-        
+
 
         print("\nBest: degrees={}, score={}, pseudo-runtime={}, balls={}\n".format(best_angle, best_score, best_loop, sim_nballs))
 
@@ -541,21 +564,21 @@ def main(maxballs=65, angles=None, manual=False, render=False):
 
 def show(angle=45, image='screen.png'):
     """
-	Debugging method.
-	
-	Replays game state in pygame
-	
-	Parameters
-	----------
-	angle : int
-	    Degree to simulate
-	image : path(str)
-	    Path to screenshot
+    Debugging method.
+
+    Replays game state in pygame
+
+    Parameters
+    ----------
+    angle : int
+        Degree to simulate
+    image : path(str)
+        Path to screenshot
 	"""
     an = Analyzer(Image.open(image))
     ball, grid, nballs, state = an.get_state()
     sim = Simulator(grid, ball)
     sim.simulate(angle, nballs, render=True)
-        
+
 if __name__ == "__main__":
     main()
