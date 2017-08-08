@@ -31,15 +31,15 @@ class Android(object):
         return Image.open(sn)
 
     def tap(self, x, y):
-        """Taps at (x,y)"""
+        """Taps at (x, y)"""
         self._call("shell input tap {} {}".format(x, y))
 
     def swipe(self, x1, y1, x2, y2, ms=500):
-        """Swipes from (x,y) to (x2,y2)"""
+        """Swipes from (x, y) to (x2, y2)"""
         self._call("shell input swipe {} {} {} {} {}".format(x1, y1, x2, y2, ms))
 
-    def swipe_angle(self, x, y, angle, dist=90, ms=600): # Swipe to shot ball at angle from x,y coord
-    """Swipes on the device from (x,y) at projecting angle"""
+    def swipe_angle(self, x, y, angle, dist=90, ms=600): # Swipe to shot ball at angle from x, y coord
+    """Swipes on the device from (x, y) at projecting angle"""
         rad = math.radians(180+angle)
         dx = math.cos(rad) * dist
         dy = math.sin(rad) * dist
@@ -49,9 +49,9 @@ class Android(object):
 def get_int(image):
     """Converts image (known to have a number) to an int"""
     return int(image_to_string(image)
-                   .replace('O','0') # These replace common mismatches
-                   .replace('l','1')
-                   .replace('.','')
+                   .replace('O', '0') # These replace common mismatches
+                   .replace('l', '1')
+                   .replace('.', '')
                    .replace('A', '4')
                    .replace('S', '5')
                    .replace('x', '')
@@ -63,11 +63,11 @@ class Analyzer(object):
     """
     Converts a screenshot into an object(s) representing the current game state
     """
-    BG_C = (32,32,32)
+    BG_C = (32, 32, 32)
     TOP_Y = 160
     BOT_Y = 1585
     BAR_H = 48
-    BALL_C = (255,255,255)
+    BALL_C = (255, 255, 255)
     BALL_W = 42
     BLOCKS_X = 23
     BLOCKS_Y = 160
@@ -76,8 +76,8 @@ class Analyzer(object):
     BLOCKS_SPACE_X = 151
     BLOCKS_SPACE_Y = 155
     BLOCK_W = 120
-    RING_C = (231,236,68)
-    NOTBLOCK_C = [BALL_C, RING_C, BG_C, (86,86,86), (84,84,84), (33,33,33), (66,66,66)]
+    RING_C = (231, 236, 68)
+    NOTBLOCK_C = [BALL_C, RING_C, BG_C, (86, 86, 86), (84, 84, 84), (33, 33, 33), (66, 66, 66)]
 
     def __init__(self, image):
         self.image = image.convert('RGB')
@@ -96,7 +96,7 @@ class Analyzer(object):
 
         try:
 
-            im = screen.crop((max(x-80, 0),y-80,min(x+90, 1080),y-22))
+            im = screen.crop((max(x-80, 0), y-80, min(x+90, 1080), y-22))
             return get_int(im)
 
         except Exception as e:
@@ -106,17 +106,17 @@ class Analyzer(object):
 
     def _get_block_type(self, block): # type/value of block or ring
 
-        r, g, b = block.getpixel((40,40))
+        r, g, b = block.getpixel((40, 40))
 
-        if r != g != b and (r,g,b) not in self.NOTBLOCK_C:
+        if r != g != b and (r, g, b) not in self.NOTBLOCK_C:
 
             return get_int(block)
 
-        elif block.getpixel((60,60)) == self.BALL_C:
+        elif block.getpixel((60, 60)) == self.BALL_C:
 
             return -1
 
-        elif block.getpixel((37,46)) == self.RING_C:
+        elif block.getpixel((37, 46)) == self.RING_C:
 
             return -2
 
@@ -150,11 +150,11 @@ class Analyzer(object):
         """
         Determines the current game state from image
 
-        Returns a tuple(4) with ball (x,y), grid, num of balls, and the state as a str
+        Returns a tuple(4) with ball (x, y), grid, num of balls, and the state as a str
         """
-        if self.image.getpixel((300,900)) == (234,34,94) and self.image.getpixel((300,1100)) == (0,163,150):
+        if self.image.getpixel((300, 900)) == (234, 34, 94) and self.image.getpixel((300, 1100)) == (0, 163, 150):
             return None, None, None, 'gameover'
-        elif self.image.getpixel((980,235)) == (130,130,130):
+        elif self.image.getpixel((980, 235)) == (130, 130, 130):
             return None, None, None, 'ingame'
 
         state = 'ready'
@@ -206,7 +206,7 @@ class Simulator(object):
             self.y = 388 + row * 154
             self.r = r
 
-        def draw(self, surface, color=(250,200,250)):
+        def draw(self, surface, color=(250, 200, 250)):
             pygame.draw.circle(surface, color, (int(self.x / RENDER_SCALE), int(self.y / RENDER_SCALE)), self.r // RENDER_SCALE, 0)
 
     class Ball(object):
@@ -228,7 +228,7 @@ class Simulator(object):
 
             # Converts perimeter of circle into a list of discrete points and checks if any are in rect
 
-            for dx, dy in [(0,radius), (0,-radius), (radius,0), (-radius,0)]: # First Check Common Angles
+            for dx, dy in [(0, radius), (0, -radius), (radius, 0), (-radius, 0)]: # First Check Common Angles
 
                 if rect.collidepoint((self.x + dx, self.y - dy)):
 
@@ -324,7 +324,7 @@ class Simulator(object):
                     self.vel = 0
 
         def draw(self, surface):
-            pygame.draw.circle(surface, (255,255,255), (int(self.x / RENDER_SCALE), int(self.y / RENDER_SCALE)), self.r // RENDER_SCALE, 0)
+            pygame.draw.circle(surface, (255, 255, 255), (int(self.x / RENDER_SCALE), int(self.y / RENDER_SCALE)), self.r // RENDER_SCALE, 0)
 
     ##########################
 
@@ -332,7 +332,7 @@ class Simulator(object):
         """Calculate score just based on remaining blocks"""
         score = 0
 
-        coeffs = [1,1.1,1.2,1.5,2,10,500] # Heuristic based on blocks remaining and how low (in height) they are
+        coeffs = [1, 1.1, 1.2, 1.5, 2, 10, 500] # Heuristic based on blocks remaining and how low (in height) they are
         for k in range(7):
             for j in range(7):
                 if board[k][j] > 0:
@@ -407,9 +407,9 @@ class Simulator(object):
 
                 time.sleep(frame_delay)
 
-                screen.fill((64,64,64))
-                pygame.draw.rect(screen, (38,38,38), (0, 0, int(1080/RENDER_SCALE), int(160/RENDER_SCALE)), 0)
-                pygame.draw.rect(screen, (38,38,38), (0, int(1586/RENDER_SCALE), int(1080/RENDER_SCALE), int(334/RENDER_SCALE)), 0)
+                screen.fill((64, 64, 64))
+                pygame.draw.rect(screen, (38, 38, 38), (0, 0, int(1080/RENDER_SCALE), int(160/RENDER_SCALE)), 0)
+                pygame.draw.rect(screen, (38, 38, 38), (0, int(1586/RENDER_SCALE), int(1080/RENDER_SCALE), int(334/RENDER_SCALE)), 0)
 
                 for block in blocks:
                     if block not in collided:
@@ -439,7 +439,7 @@ class Simulator(object):
                     elif ball.collides_block(block):
 
                         if render:
-                            block.draw(screen, (100,100,200))
+                            block.draw(screen, (100, 100, 200))
 
                         block.value -= 1
                         board[block.r][block.c] -= 1
@@ -449,7 +449,7 @@ class Simulator(object):
                             collided.append(block)
 
                             if render:
-                                block.draw(screen, (250,100,100))
+                                block.draw(screen, (250, 100, 100))
 
                         break
 
@@ -523,7 +523,7 @@ def main(maxballs=65, angles=None, manual=False, render=False):
             break
 
         elif state is 'ingame':
-            device.tap(980,235)
+            device.tap(980, 235)
             time.sleep(6)
             continue
 
@@ -536,9 +536,11 @@ def main(maxballs=65, angles=None, manual=False, render=False):
         best_score = -10**9 # -> -Infinity
 
         for ang in angles: # Try every angle and choose one w/best score
+
             print("Simulating {} degs -> ".format(ang), end='')
             score, loops, _ = sim.simulate(ang, min(maxballs, sim_nballs))
             print("score = {}, loops = {}".format(score, loops))
+
             if score > best_score:
                 best_score = score
                 best_angle = ang
@@ -553,8 +555,10 @@ def main(maxballs=65, angles=None, manual=False, render=False):
         device.swipe_angle(ball[0], ball[1], best_angle) # Execute best move
 
         if not manual: # Estimate how long the round will last and waits
+
             seconds = min(int(best_loop / (50.0 * BALL_VEL_PER_FRAME) + 2), 25)
             print("Waiting {} seconds... (Tap Ctrl-C to skip)\n".format(seconds))
+
             try:
                 while seconds > 0:
                     time.sleep(1)
@@ -574,7 +578,7 @@ def show(angle=45, image='screen.png'):
         Degree to simulate
     image : path(str)
         Path to screenshot
-	"""
+    """
     an = Analyzer(Image.open(image))
     ball, grid, nballs, state = an.get_state()
     sim = Simulator(grid, ball)
