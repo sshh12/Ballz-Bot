@@ -1,3 +1,9 @@
+
+# coding: utf-8
+
+# In[ ]:
+
+
 from __future__ import print_function
 
 # Main imports
@@ -12,9 +18,17 @@ import pprint
 import pygame
 import sys
 
+
+# In[ ]:
+
+
 # Constants
 RENDER_SCALE = 2
 BALL_VEL_PER_FRAME = 4
+
+
+# In[ ]:
+
 
 class Android(object):
     """Wrapper for interfacing with android through adb"""
@@ -46,6 +60,9 @@ class Android(object):
         self.swipe(x, y, x + dx, y - dy, ms)
 
 
+# In[ ]:
+
+
 def get_int(image):
     """Converts image (known to have a number) to an int"""
     return int(image_to_string(image)
@@ -58,6 +75,10 @@ def get_int(image):
                    .replace('X', '')
                    .replace('<', '')
                    .replace('>', '').strip())
+
+
+# In[ ]:
+
 
 class Analyzer(object):
     """
@@ -171,6 +192,10 @@ class Analyzer(object):
         blocks.save('blocks.png') # Saves for debug
 
         return ball_pos, grid, nballs, state
+
+
+# In[ ]:
+
 
 class Simulator(object):
     """Uses game state to simulate plays @ diff angles."""
@@ -327,7 +352,7 @@ class Simulator(object):
             pygame.draw.circle(surface, (255, 255, 255), (int(self.x / RENDER_SCALE), int(self.y / RENDER_SCALE)), self.r // RENDER_SCALE, 0)
 
     ##########################
-
+    
     def calculate_score(self, board):
         """Calculate score just based on remaining blocks"""
         score = 0
@@ -478,6 +503,8 @@ class Simulator(object):
         return score, loops, board
 
 
+# In[ ]:
+
 
 def print_grid(grid):
     pprint.pprint(grid)
@@ -566,6 +593,10 @@ def main(maxballs=65, angles=None, manual=False, render=False):
             except KeyboardInterrupt: # Allow users to skip in the event estimated time is too long
                 time.sleep(0.7)
 
+
+# In[ ]:
+
+
 def show(angle=45, image='screen.png'):
     """
     Debugging method.
@@ -584,5 +615,10 @@ def show(angle=45, image='screen.png'):
     sim = Simulator(grid, ball)
     sim.simulate(angle, nballs, render=True)
 
+
+# In[ ]:
+
+
 if __name__ == "__main__":
     main()
+

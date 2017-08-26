@@ -13,7 +13,7 @@ A python based bot for the mobile game [Ballz](https://play.google.com/store/app
 3. Install [adb](https://developer.android.com/studio/command-line/adb.html)
 4. Connect Android device (with 1080p screen)
 5. Open Ballz App and start a game
-6. Run ballz.py
+6. Run Ballz.py
 
 ## How it works
 The task of playing the game is split into 3 different steps and in game
